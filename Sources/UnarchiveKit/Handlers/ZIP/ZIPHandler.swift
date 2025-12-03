@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import MinizipNG
+import minizip
 
 actor ZIPHandler: UnarchiveHandler {
   let url: URL

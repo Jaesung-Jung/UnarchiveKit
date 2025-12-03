@@ -21,10 +21,10 @@ let package = Package(
   targets: [
     .target(
       name: "UnarchiveKit",
-      dependencies: ["MinizipNG"]
+      dependencies: ["minizip"]
     ),
     .target(
-      name: "MinizipNG",
+      name: "minizip",
       publicHeadersPath: ".",
       cSettings: [
         .define("HAVE_ZLIB"),
