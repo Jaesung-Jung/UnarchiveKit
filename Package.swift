@@ -1,66 +1,46 @@
-// swift-tools-version: 5.10
+// swift-tools-version: 6.0
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
-  name: "ArchiveKit",
+  name: "UnarchiveKit",
   platforms: [
+    .macOS(.v13),
     .iOS(.v13),
-    .macCatalyst(.v13),
-    .macOS(.v10_15),
     .tvOS(.v13),
     .watchOS(.v6),
     .visionOS(.v1)
   ],
   products: [
     .library(
-      name: "ArchiveKit",
-      targets: ["ArchiveKit"]
+      name: "UnarchiveKit",
+      targets: ["UnarchiveKit"]
     ),
   ],
   targets: [
     .target(
-      name: "ArchiveKit",
-      dependencies: ["minizip407"]
+      name: "UnarchiveKit",
+      dependencies: ["MinizipNG"]
     ),
     .target(
-      name: "minizip120",
+      name: "MinizipNG",
       publicHeadersPath: ".",
       cSettings: [
-        .define("HAVE_AES"),
-        .define("HAVE_APPLE_COMPRESSION"),
-        .unsafeFlags(["-w"])
-      ]
-    ),
-    .target(
-      name: "minizip407",
-      exclude: ["LICENSE", "README.md"],
-      publicHeadersPath: ".",
-      cSettings: [
-        .define("HAVE_WZAES"),
         .define("HAVE_ZLIB"),
-        .define("HAVE_ICONV"),
-        .define("HAVE_LIBBSD"),
-        .define("HAVE_ARC4RANDOM"),
-        .define("HAVE_LIBCOMP"),
         .define("HAVE_BZIP2"),
+        .define("HAVE_WZAES"),
         .define("HAVE_PKCRYPT"),
-        .define("HAVE_STDINT_H"),
-        .define("ZLIB_COMPAT"),
+        .define("ZLIB_COMPAT")
       ],
       linkerSettings: [
         .linkedLibrary("z"),
-        .linkedLibrary("bz2"),
-        .linkedLibrary("iconv")
+        .linkedLibrary("bz2")
       ]
     ),
     .testTarget(
-      name: "ArchiveKitTests",
-      dependencies: ["ArchiveKit"],
-      resources: [
-        .process("Resources")
-      ]
+      name: "UnarchiveKitTests",
+      dependencies: ["UnarchiveKit"]
     ),
   ]
 )
