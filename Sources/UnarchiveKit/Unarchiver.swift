@@ -16,7 +16,12 @@ public final class Unarchiver: Sendable {
   public init(url: URL) throws(UnarchiverError) {
     do {
       let fileHandle = try FileHandle(forReadingFrom: url)
-      guard let data = try fileHandle.read(upToCount: 512), let format = Format(data: data) else {
+      let data: Data? = if #available(macOS 10.15.4, iOS 13.4, tvOS 13.4, watchOS 6.2, *) {
+        try fileHandle.read(upToCount: 512)
+      } else {
+        fileHandle.readData(ofLength: 512)
+      }
+      guard let data, let format = Format(data: data) else {
         throw UnarchiverError.unsupportedFormat
       }
       switch format {
