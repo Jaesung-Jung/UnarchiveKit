@@ -21,7 +21,10 @@ let package = Package(
   targets: [
     .target(
       name: "UnarchiveKit",
-      dependencies: ["minizip"]
+      dependencies: [
+        "minizip",
+        "libtar"
+      ]
     ),
     .target(
       name: "minizip",
@@ -36,6 +39,16 @@ let package = Package(
       linkerSettings: [
         .linkedLibrary("z"),
         .linkedLibrary("bz2")
+      ]
+    ),
+    .target(
+      name: "libtar",
+      cSettings: [
+        .headerSearchPath("."),
+        .unsafeFlags([
+          "-Wno-format",
+          "-Wno-conversion"
+        ])
       ]
     ),
     .testTarget(
