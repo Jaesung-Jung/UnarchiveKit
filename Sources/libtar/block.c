@@ -10,12 +10,12 @@
 **  University of Illinois at Urbana-Champaign
 */
 
-#include <stdio.h>
 #include <internal.h>
 
 #include <errno.h>
 
 #ifdef STDC_HEADERS
+# include <stdio.h>
 # include <string.h>
 # include <stdlib.h>
 #endif
@@ -25,17 +25,6 @@
 
 
 /* read a header block */
-/* FIXME: the return value of this function should match the return value
-	  of tar_block_read(), which is a macro which references a prototype
-	  that returns a ssize_t.  So far, this is safe, since tar_block_read()
-	  only ever reads 512 (T_BLOCKSIZE) bytes at a time, so any difference
-	  in size of ssize_t and int is of negligible risk.  BUT, if
-	  T_BLOCKSIZE ever changes, or ever becomes a variable parameter
-	  controllable by the user, all the code that calls it,
-	  including this function and all code that calls it, should be
-	  fixed for security reasons.
-	  Thanks to Chris Palmer for the critique.
-*/
 int
 th_read_internal(TAR *t)
 {

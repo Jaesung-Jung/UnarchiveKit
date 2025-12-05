@@ -13,7 +13,6 @@
 #include <internal.h>
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
@@ -124,9 +123,9 @@ th_print_long_ls(TAR *t)
 		else
 			printf(" link to ");
 		if ((t->options & TAR_GNU) && t->th_buf.gnu_longlink != NULL)
-			printf("%s", safer_name_suffix(t->th_buf.gnu_longlink));
+			printf("%s", t->th_buf.gnu_longlink);
 		else
-			printf("%.100s", safer_name_suffix(t->th_buf.linkname));
+			printf("%.100s", t->th_buf.linkname);
 	}
 
 	putchar('\n');

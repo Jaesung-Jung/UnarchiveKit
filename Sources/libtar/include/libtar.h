@@ -13,7 +13,6 @@
 #ifndef LIBTAR_H
 #define LIBTAR_H
 
-#include <stdint.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <tar.h>
@@ -27,7 +26,6 @@ extern "C"
 
 
 /* useful constants */
-/* see FIXME note in block.c regarding T_BLOCKSIZE */
 #define T_BLOCKSIZE		512
 #define T_NAMELEN		100
 #define T_PREFIXLEN		155
@@ -64,10 +62,10 @@ struct tar_header
 
 /***** handle.c ************************************************************/
 
-typedef intptr_t (*openfunc_t)(const char *, int, int);
-typedef int (*closefunc_t)(intptr_t);
-typedef ssize_t (*readfunc_t)(intptr_t, void *, size_t);
-typedef ssize_t (*writefunc_t)(intptr_t, const void *, size_t);
+typedef int (*openfunc_t)(const char *, int, ...);
+typedef int (*closefunc_t)(int);
+typedef ssize_t (*readfunc_t)(int, void *, size_t);
+typedef ssize_t (*writefunc_t)(int, const void *, size_t);
 
 typedef struct
 {
@@ -81,15 +79,12 @@ tartype_t;
 typedef struct
 {
 	tartype_t *type;
-	const char *pathname;
-	intptr_t fd;
+	char *pathname;
+	long fd;
 	int oflags;
 	int options;
 	struct tar_header th_buf;
 	libtar_hash_t *h;
-
-	/* introduced in libtar 1.2.21 */
-	char *th_pathname;
 }
 TAR;
 
@@ -117,7 +112,7 @@ int tar_fdopen(TAR **t, int fd, const char *pathname, tartype_t *type,
 	       int oflags, int mode, int options);
 
 /* returns the descriptor associated with t */
-intptr_t tar_fd(TAR *t);
+int tar_fd(TAR *t);
 
 /* close tarfile handle */
 int tar_close(TAR *t);
@@ -177,7 +172,6 @@ int th_write(TAR *t);
 #define TH_ISDIR(t)	((t)->th_buf.typeflag == DIRTYPE \
 			 || S_ISDIR((mode_t)oct_to_int((t)->th_buf.mode)) \
 			 || ((t)->th_buf.typeflag == AREGTYPE \
-			     && strlen((t)->th_buf.name) \
 			     && ((t)->th_buf.name[strlen((t)->th_buf.name) - 1] == '/')))
 #define TH_ISFIFO(t)	((t)->th_buf.typeflag == FIFOTYPE \
 			 || S_ISFIFO((mode_t)oct_to_int((t)->th_buf.mode)))
@@ -186,7 +180,7 @@ int th_write(TAR *t);
 
 /* decode tar header info */
 #define th_get_crc(t) oct_to_int((t)->th_buf.chksum)
-#define th_get_size(t) oct_to_size((t)->th_buf.size)
+#define th_get_size(t) oct_to_int((t)->th_buf.size)
 #define th_get_mtime(t) oct_to_int((t)->th_buf.mtime)
 #define th_get_devmajor(t) oct_to_int((t)->th_buf.devmajor)
 #define th_get_devminor(t) oct_to_int((t)->th_buf.devminor)
@@ -279,7 +273,6 @@ int th_signed_crc_calc(TAR *t);
 
 /* string-octal to integer conversion */
 int oct_to_int(char *oct);
-size_t oct_to_size(char *oct);
 
 /* integer to NULL-terminated string-octal conversion */
 #define int_to_oct(num, oct, octlen) \

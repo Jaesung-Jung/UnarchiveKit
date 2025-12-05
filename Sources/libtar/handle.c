@@ -27,28 +27,7 @@
 
 const char libtar_version[] = PACKAGE_VERSION;
 
-static intptr_t tar_openfunc(const char *pathname, int flags, int mode)
-{
-	return (intptr_t)open(pathname, flags, mode);
-}
-
-static int tar_closefunc(intptr_t fd)
-{
-	return close((int)fd);
-}
-
-static ssize_t tar_readfunc(intptr_t fd, void *buf, size_t count)
-{
-	return read((int)fd, buf, count);
-}
-
-static ssize_t tar_writefunc(intptr_t fd, const void *buf, size_t count)
-{
-	return write((int)fd, buf, count);
-}
-
-static tartype_t default_type = { tar_openfunc, tar_closefunc,
-				  tar_readfunc, tar_writefunc };
+static tartype_t default_type = { open, close, read, write };
 
 
 static int
@@ -103,7 +82,6 @@ tar_open(TAR **t, const char *pathname, tartype_t *type,
 	(*t)->fd = (*((*t)->type->openfunc))(pathname, oflags, mode);
 	if ((*t)->fd == -1)
 	{
-		libtar_hash_free((*t)->h, NULL);
 		free(*t);
 		return -1;
 	}
@@ -124,7 +102,7 @@ tar_fdopen(TAR **t, int fd, const char *pathname, tartype_t *type,
 }
 
 
-intptr_t
+int
 tar_fd(TAR *t)
 {
 	return t->fd;
@@ -143,8 +121,6 @@ tar_close(TAR *t)
 		libtar_hash_free(t->h, ((t->oflags & O_ACCMODE) == O_RDONLY
 					? free
 					: (libtar_freefunc_t)tar_dev_free));
-	if (t->th_pathname != NULL)
-		free(t->th_pathname);
 	free(t);
 
 	return i;

@@ -148,16 +148,9 @@ oct_to_int(char *oct)
 {
 	int i;
 
-	return sscanf(oct, "%o", &i) == 1 ? i : 0;
-}
+	sscanf(oct, "%o", &i);
 
-/* string-octal to size_t conversion */
-size_t
-oct_to_size(char *oct)
-{
-	size_t i;
-
-	return sscanf(oct, "%zo", &i) == 1 ? i : 0;
+	return i;
 }
 
 
@@ -165,7 +158,7 @@ oct_to_size(char *oct)
 void
 int_to_oct_nonull(int num, char *oct, size_t octlen)
 {
-	snprintf(oct, octlen, "%*lo", (int)(octlen - 1), (unsigned long)num);
+	snprintf(oct, octlen, "%*lo", octlen - 1, (unsigned long)num);
 	oct[octlen - 1] = ' ';
 }
 

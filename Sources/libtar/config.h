@@ -112,31 +112,31 @@
 /* #undef MAKEDEV_THREE_ARGS */
 
 /* Define if you want to use the basename function */
-/* #undef NEED_BASENAME */
+#define NEED_BASENAME 1
 
 /* Define if you want to use the dirname function */
-/* #undef NEED_DIRNAME */
+#define NEED_DIRNAME 1
 
 /* Define if you want to use the fnmatch function */
-/* #undef NEED_FNMATCH */
+#define NEED_FNMATCH 1
 
 /* Define if you want to use the makedev function */
-#define NEED_MAKEDEV 
+#define NEED_MAKEDEV 1
 
 /* Define if you want to use the snprintf function */
-/* #undef NEED_SNPRINTF */
+#define NEED_SNPRINTF 1
 
 /* Define if you want to use the strdup function */
-/* #undef NEED_STRDUP */
+#define NEED_STRDUP 1
 
 /* Define if you want to use the strlcpy function */
-/* #undef NEED_STRLCPY */
+#define NEED_STRLCPY 1
 
 /* Define if you want to use the strmode function */
-/* #undef NEED_STRMODE */
+#define NEED_STRMODE 1
 
 /* Define if you want to use the strsep function */
-/* #undef NEED_STRSEP */
+#define NEED_STRSEP 1
 
 /* Name of package */
 #define PACKAGE "libtar"
@@ -165,7 +165,7 @@
 #define STDC_HEADERS 1
 
 /* If the compiler supports a TLS storage class define it to that here */
-/* #undef TLS */
+#define TLS __thread
 
 /* Enable extensions on AIX, Interix, z/OS.  */
 #ifndef _ALL_SOURCE
@@ -272,10 +272,10 @@
 /* #undef gid_t */
 
 /* Define to `unsigned int' if not defined in system header files. */
-/* #undef major_t */
+#define major_t unsigned int
 
 /* Define to `unsigned int' if not defined in system header files. */
-/* #undef minor_t */
+#define minor_t unsigned int
 
 /* Define to 'int' if <sys/types.h> does not define. */
 /* #undef mode_t */

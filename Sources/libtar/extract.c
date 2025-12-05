@@ -85,6 +85,7 @@ tar_set_file_perms(TAR *t, char *realname)
 	return 0;
 }
 
+
 /* switchboard */
 int
 tar_extract_file(TAR *t, char *realname)
@@ -158,7 +159,7 @@ tar_extract_regfile(TAR *t, char *realname)
 	uid_t uid;
 	gid_t gid;
 	int fdout;
-	ssize_t i, k;
+	int i, k;
 	char buf[T_BLOCKSIZE];
 	char *filename;
 
@@ -227,17 +228,13 @@ tar_extract_regfile(TAR *t, char *realname)
 		{
 			if (k != -1)
 				errno = EINVAL;
-			close(fdout);
 			return -1;
 		}
 
 		/* write block to output file */
 		if (write(fdout, buf,
 			  ((i > T_BLOCKSIZE) ? T_BLOCKSIZE : i)) == -1)
-		{
-			close(fdout);
 			return -1;
-		}
 	}
 
 	/* close output file */
@@ -256,7 +253,7 @@ tar_extract_regfile(TAR *t, char *realname)
 int
 tar_skip_regfile(TAR *t)
 {
-	ssize_t i, k;
+	int i, k;
 	size_t size;
 	char buf[T_BLOCKSIZE];
 
@@ -301,14 +298,14 @@ tar_extract_hardlink(TAR * t, char *realname)
 	if (mkdirhier(dirname(filename)) == -1)
 		return -1;
 	libtar_hashptr_reset(&hp);
-	if (libtar_hash_getkey(t->h, &hp, safer_name_suffix(th_get_linkname(t)),
+	if (libtar_hash_getkey(t->h, &hp, th_get_linkname(t),
 			       (libtar_matchfunc_t)libtar_str_match) != 0)
 	{
 		lnp = (char *)libtar_hashptr_data(&hp);
 		linktgt = &lnp[strlen(lnp) + 1];
 	}
 	else
-		linktgt = safer_name_suffix(th_get_linkname(t));
+		linktgt = th_get_linkname(t);
 
 #ifdef DEBUG
 	printf("  ==> extracting: %s (link to %s)\n", filename, linktgt);
@@ -346,9 +343,9 @@ tar_extract_symlink(TAR *t, char *realname)
 
 #ifdef DEBUG
 	printf("  ==> extracting: %s (symlink to %s)\n",
-	       filename, safer_name_suffix(th_get_linkname(t)));
+	       filename, th_get_linkname(t));
 #endif
-	if (symlink(safer_name_suffix(th_get_linkname(t)), filename) == -1)
+	if (symlink(th_get_linkname(t), filename) == -1)
 	{
 #ifdef DEBUG
 		perror("symlink()");

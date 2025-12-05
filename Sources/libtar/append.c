@@ -13,8 +13,6 @@
 #include <internal.h>
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/param.h>
@@ -107,14 +105,10 @@ tar_append_file(TAR *t, const char *realname, const char *savename)
 		       major(s.st_dev), minor(s.st_dev));
 #endif
 		td = (tar_dev_t *)calloc(1, sizeof(tar_dev_t));
-		if (td == NULL)
-			return -1;
 		td->td_dev = s.st_dev;
 		td->td_h = libtar_hash_new(256, (libtar_hashfunc_t)ino_hash);
-		if (td->td_h == NULL) {
-			free(td);
+		if (td->td_h == NULL)
 			return -1;
-		}
 		if (libtar_hash_add(t->h, td) == -1)
 			return -1;
 	}
@@ -220,13 +214,8 @@ tar_append_regfile(TAR *t, const char *realname)
 	int filefd;
 	int i, j;
 	size_t size;
-	int rv = -1;
 
-#if defined(O_BINARY)
-	filefd = open(realname, O_RDONLY|O_BINARY);
-#else
 	filefd = open(realname, O_RDONLY);
-#endif
 	if (filefd == -1)
 	{
 #ifdef DEBUG
@@ -243,28 +232,25 @@ tar_append_regfile(TAR *t, const char *realname)
 		{
 			if (j != -1)
 				errno = EINVAL;
-			goto fail;
+			return -1;
 		}
 		if (tar_block_write(t, &block) == -1)
-			goto fail;
+			return -1;
 	}
 
 	if (i > 0)
 	{
 		j = read(filefd, &block, i);
 		if (j == -1)
-			goto fail;
+			return -1;
 		memset(&(block[i]), 0, T_BLOCKSIZE - i);
 		if (tar_block_write(t, &block) == -1)
-			goto fail;
+			return -1;
 	}
 
-	/* success! */
-	rv = 0;
-fail:
 	close(filefd);
 
-	return rv;
+	return 0;
 }
 
 
