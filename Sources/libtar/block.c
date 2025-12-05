@@ -24,6 +24,120 @@
 #define BIT_ISSET(bitmask, bit) ((bitmask) & (bit))
 
 
+/*
+** Parse PAX extended header data.
+** PAX format: "len key=value\n" where len includes the length field itself.
+** Returns 0 on success, -1 on error.
+*/
+static int
+pax_parse_header(TAR *t, const char *data, size_t datalen)
+{
+	const char *p = data;
+	const char *end = data + datalen;
+
+#ifdef DEBUG
+	printf("    pax_parse_header(): parsing %zu bytes\n", datalen);
+#endif
+
+	while (p < end && *p != '\0')
+	{
+		size_t len;
+		const char *key_start, *key_end, *value_start, *value_end;
+		char *endptr;
+
+		/* Parse length field */
+		len = strtoul(p, &endptr, 10);
+		if (endptr == p || *endptr != ' ' || len == 0)
+		{
+#ifdef DEBUG
+			printf("    pax_parse_header(): invalid length field\n");
+#endif
+			break;
+		}
+
+		/* Validate length doesn't exceed remaining data */
+		if (len > (size_t)(end - p))
+		{
+#ifdef DEBUG
+			printf("    pax_parse_header(): length %zu exceeds remaining data\n", len);
+#endif
+			break;
+		}
+
+		/* Find key=value pair */
+		key_start = endptr + 1;
+		key_end = memchr(key_start, '=', (p + len) - key_start);
+		if (key_end == NULL)
+		{
+#ifdef DEBUG
+			printf("    pax_parse_header(): no '=' found in record\n");
+#endif
+			p += len;
+			continue;
+		}
+
+		value_start = key_end + 1;
+		value_end = p + len - 1; /* -1 for newline */
+
+		/* Skip if value is empty or malformed */
+		if (value_start >= value_end)
+		{
+			p += len;
+			continue;
+		}
+
+#ifdef DEBUG
+		{
+			size_t keylen = key_end - key_start;
+			size_t vallen = value_end - value_start;
+			printf("    pax_parse_header(): key='%.*s' value='%.*s'\n",
+			       (int)keylen, key_start, (int)vallen, value_start);
+		}
+#endif
+
+		/* Check for 'path' keyword */
+		if ((size_t)(key_end - key_start) == 4 &&
+		    strncmp(key_start, "path", 4) == 0)
+		{
+			size_t vallen = value_end - value_start;
+			if (t->th_buf.pax_path != NULL)
+				free(t->th_buf.pax_path);
+			t->th_buf.pax_path = (char *)malloc(vallen + 1);
+			if (t->th_buf.pax_path == NULL)
+				return -1;
+			memcpy(t->th_buf.pax_path, value_start, vallen);
+			t->th_buf.pax_path[vallen] = '\0';
+#ifdef DEBUG
+			printf("    pax_parse_header(): set pax_path='%s'\n",
+			       t->th_buf.pax_path);
+#endif
+		}
+		/* Check for 'linkpath' keyword */
+		else if ((size_t)(key_end - key_start) == 8 &&
+		         strncmp(key_start, "linkpath", 8) == 0)
+		{
+			size_t vallen = value_end - value_start;
+			if (t->th_buf.pax_linkpath != NULL)
+				free(t->th_buf.pax_linkpath);
+			t->th_buf.pax_linkpath = (char *)malloc(vallen + 1);
+			if (t->th_buf.pax_linkpath == NULL)
+				return -1;
+			memcpy(t->th_buf.pax_linkpath, value_start, vallen);
+			t->th_buf.pax_linkpath[vallen] = '\0';
+#ifdef DEBUG
+			printf("    pax_parse_header(): set pax_linkpath='%s'\n",
+			       t->th_buf.pax_linkpath);
+#endif
+		}
+		/* Other keywords (size, mtime, uid, gid, etc.) can be added here */
+
+		p += len;
+	}
+
+	return 0;
+}
+
+
 /* read a header block */
 int
 th_read_internal(TAR *t)
@@ -103,6 +217,10 @@ th_read(TAR *t)
 		free(t->th_buf.gnu_longname);
 	if (t->th_buf.gnu_longlink != NULL)
 		free(t->th_buf.gnu_longlink);
+	if (t->th_buf.pax_path != NULL)
+		free(t->th_buf.pax_path);
+	if (t->th_buf.pax_linkpath != NULL)
+		free(t->th_buf.pax_linkpath);
 	memset(&(t->th_buf), 0, sizeof(struct tar_header));
 
 	i = th_read_internal(t);
@@ -213,6 +331,92 @@ th_read(TAR *t)
 				errno = EINVAL;
 			return -1;
 		}
+	}
+
+	/* check for PAX extended header */
+	if (TH_ISPAX(t) || TH_ISPAXGLOBAL(t))
+	{
+		char *pax_path_saved = NULL;
+		char *pax_linkpath_saved = NULL;
+
+		sz = th_get_size(t);
+		blocks = (sz / T_BLOCKSIZE) + (sz % T_BLOCKSIZE ? 1 : 0);
+		if (blocks > ((size_t)-1 / T_BLOCKSIZE))
+		{
+			errno = E2BIG;
+			return -1;
+		}
+#ifdef DEBUG
+		printf("    th_read(): PAX extended header detected "
+		       "(%zu bytes, %zu blocks), typeflag='%c'\n",
+		       sz, blocks, t->th_buf.typeflag);
+#endif
+		ptr = (char *)malloc(blocks * T_BLOCKSIZE);
+		if (ptr == NULL)
+			return -1;
+
+		for (j = 0; j < blocks; j++)
+		{
+#ifdef DEBUG
+			printf("    th_read(): reading PAX block %zu of %zu\n",
+			       j + 1, blocks);
+#endif
+			i = tar_block_read(t, ptr + (j * T_BLOCKSIZE));
+			if (i != T_BLOCKSIZE)
+			{
+				free(ptr);
+				if (i != -1)
+					errno = EINVAL;
+				return -1;
+			}
+		}
+
+		/* Parse PAX data */
+		if (pax_parse_header(t, ptr, sz) != 0)
+		{
+			free(ptr);
+			return -1;
+		}
+
+		/* Save pax values before reading next header */
+		if (t->th_buf.pax_path != NULL)
+		{
+			pax_path_saved = t->th_buf.pax_path;
+			t->th_buf.pax_path = NULL;
+		}
+		if (t->th_buf.pax_linkpath != NULL)
+		{
+			pax_linkpath_saved = t->th_buf.pax_linkpath;
+			t->th_buf.pax_linkpath = NULL;
+		}
+
+		free(ptr);
+
+		/* Read the actual file header that follows */
+		i = th_read_internal(t);
+		if (i != T_BLOCKSIZE)
+		{
+			if (pax_path_saved != NULL)
+				free(pax_path_saved);
+			if (pax_linkpath_saved != NULL)
+				free(pax_linkpath_saved);
+			if (i != -1)
+				errno = EINVAL;
+			return -1;
+		}
+
+		/* Restore saved pax values to the new header */
+		t->th_buf.pax_path = pax_path_saved;
+		t->th_buf.pax_linkpath = pax_linkpath_saved;
+
+#ifdef DEBUG
+		if (t->th_buf.pax_path != NULL)
+			printf("    th_read(): PAX path restored: '%s'\n",
+			       t->th_buf.pax_path);
+		if (t->th_buf.pax_linkpath != NULL)
+			printf("    th_read(): PAX linkpath restored: '%s'\n",
+			       t->th_buf.pax_linkpath);
+#endif
 	}
 
 #if 0

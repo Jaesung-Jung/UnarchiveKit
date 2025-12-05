@@ -121,6 +121,19 @@ tar_close(TAR *t)
 		libtar_hash_free(t->h, ((t->oflags & O_ACCMODE) == O_RDONLY
 					? free
 					: (libtar_freefunc_t)tar_dev_free));
+
+	/* free PAX extended header data */
+	if (t->th_buf.pax_path != NULL)
+		free(t->th_buf.pax_path);
+	if (t->th_buf.pax_linkpath != NULL)
+		free(t->th_buf.pax_linkpath);
+
+	/* free GNU long name/link data */
+	if (t->th_buf.gnu_longname != NULL)
+		free(t->th_buf.gnu_longname);
+	if (t->th_buf.gnu_longlink != NULL)
+		free(t->th_buf.gnu_longlink);
+
 	free(t);
 
 	return i;

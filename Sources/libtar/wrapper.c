@@ -149,4 +149,8 @@ tar_append_tree(TAR *t, char *realdir, char *savedir)
 	return 0;
 }
 
-
+int
+tar_is_reg(TAR *t)
+{
+    return TH_ISREG(t);
+}

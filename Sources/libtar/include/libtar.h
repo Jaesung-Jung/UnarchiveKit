@@ -35,6 +35,10 @@ extern "C"
 #define GNU_LONGNAME_TYPE	'L'
 #define GNU_LONGLINK_TYPE	'K'
 
+/* PAX (POSIX.1-2001) extensions for typeflag */
+#define PAX_EXTHDR_TYPE		'x'	/* extended header for next file */
+#define PAX_GLOBAL_TYPE		'g'	/* global extended header */
+
 /* our version of the tar header structure */
 struct tar_header
 {
@@ -57,6 +61,8 @@ struct tar_header
 	char padding[12];
 	char *gnu_longname;
 	char *gnu_longlink;
+	char *pax_path;		/* path from PAX extended header */
+	char *pax_linkpath;	/* linkpath from PAX extended header */
 };
 
 
@@ -177,6 +183,8 @@ int th_write(TAR *t);
 			 || S_ISFIFO((mode_t)oct_to_int((t)->th_buf.mode)))
 #define TH_ISLONGNAME(t)	((t)->th_buf.typeflag == GNU_LONGNAME_TYPE)
 #define TH_ISLONGLINK(t)	((t)->th_buf.typeflag == GNU_LONGLINK_TYPE)
+#define TH_ISPAX(t)		((t)->th_buf.typeflag == PAX_EXTHDR_TYPE)
+#define TH_ISPAXGLOBAL(t)	((t)->th_buf.typeflag == PAX_GLOBAL_TYPE)
 
 /* decode tar header info */
 #define th_get_crc(t) oct_to_int((t)->th_buf.chksum)
@@ -184,9 +192,11 @@ int th_write(TAR *t);
 #define th_get_mtime(t) oct_to_int((t)->th_buf.mtime)
 #define th_get_devmajor(t) oct_to_int((t)->th_buf.devmajor)
 #define th_get_devminor(t) oct_to_int((t)->th_buf.devminor)
-#define th_get_linkname(t) ((t)->th_buf.gnu_longlink \
-                            ? (t)->th_buf.gnu_longlink \
-                            : (t)->th_buf.linkname)
+#define th_get_linkname(t) ((t)->th_buf.pax_linkpath \
+                            ? (t)->th_buf.pax_linkpath \
+                            : ((t)->th_buf.gnu_longlink \
+                               ? (t)->th_buf.gnu_longlink \
+                               : (t)->th_buf.linkname))
 char *th_get_pathname(TAR *t);
 mode_t th_get_mode(TAR *t);
 uid_t th_get_uid(TAR *t);
@@ -291,6 +301,7 @@ int tar_extract_all(TAR *t, char *prefix);
 /* add a whole tree of files */
 int tar_append_tree(TAR *t, char *realdir, char *savedir);
 
+int tar_is_reg(TAR *t);
 
 #ifdef __cplusplus
 }

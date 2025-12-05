@@ -28,6 +28,10 @@ th_get_pathname(TAR *t)
 {
 	static TLS_THREAD char filename[MAXPATHLEN];
 
+	/* PAX path takes highest priority */
+	if (t->th_buf.pax_path)
+		return t->th_buf.pax_path;
+
 	if (t->th_buf.gnu_longname)
 		return t->th_buf.gnu_longname;
 
